@@ -229,7 +229,7 @@ const Dashboard = () => {
           colorClass="text-emerald-500"
         />
         <StatCard
-          title="Revenue Stream"
+          title="Revenue"
           value={`₹${stats.revenue.toLocaleString("en-IN")}`}
           subtext="Total Collections"
           icon={<FaNotesMedical />}
@@ -269,7 +269,7 @@ const Dashboard = () => {
 
           {/* Points to /billing */}
           <QuickAction
-            label="Billing Archive"
+            label="Manage Bills"
             icon={<FaHistory />}
             color="bg-purple-600"
             onClick={() => navigate("/billing")}
@@ -324,7 +324,7 @@ const Dashboard = () => {
               Recent Invoices
             </h3>
             <button
-              onClick={() => navigate("/manage-bill")}
+              onClick={() => navigate("/billing")}
               className="text-[10px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors"
             >
               Billing Desk

@@ -4,8 +4,8 @@ import {
   MdKeyboardArrowDown, 
   MdHome, 
   MdPeople, 
-  MdReceipt, 
-  MdSettings 
+  MdReceipt,
+  MdDescription 
 } from 'react-icons/md';
 
 const Navbar = () => {
@@ -38,7 +38,7 @@ const Navbar = () => {
           
           {/* Dropdown - Pushed down with pt-5 to align with shorter navbar */}
           <div className="absolute left-0 z-50 invisible w-48 pt-5 transition-all duration-300 opacity-0 top-full group-hover:visible group-hover:opacity-100">
-            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl">
+            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl rounded-2xl">
               <Link to="/patients/add" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Add Patient</Link>
               <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
               <Link to="/patients" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Manage Patients</Link>
@@ -55,7 +55,7 @@ const Navbar = () => {
           </button>
           
           <div className="absolute left-0 z-50 invisible w-48 pt-5 transition-all duration-300 opacity-0 top-full group-hover:visible group-hover:opacity-100">
-            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl">
+            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl rounded-2xl">
               <Link to="/billing/new" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Add Bill</Link>
               <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
               <Link to="/billing" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Manage Bills</Link>
@@ -63,20 +63,28 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* Invoices Dropdown */}
+        <div className="relative group">
+          <button className="flex items-center gap-2 px-4 py-2 transition rounded-xl text-slate-300 group-hover:bg-white/10 group-hover:text-white">
+            <MdDescription size={20} />
+            <span className="text-sm font-semibold tracking-wide">Invoices</span>
+            <MdKeyboardArrowDown className="transition-transform group-hover:rotate-180" />
+          </button>
+          
+          <div className="absolute left-0 z-50 invisible w-48 pt-5 transition-all duration-300 opacity-0 top-full group-hover:visible group-hover:opacity-100">
+            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl rounded-2xl">
+              <Link to="/invoices/new" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">New</Link>
+              <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+              <Link to="/invoices" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Manage</Link>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Right: Settings Icon with Animation */}
-      <div className="flex items-center">
-        <Link 
-          to="/settings" 
-          className="group/settings p-2.5 transition-all border border-transparent rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:border-medical-glassBorder"
-          title="Settings"
-        >
-          <MdSettings 
-            size={24} 
-            className="transition-transform duration-700 group-hover/settings:rotate-180" 
-          />
-        </Link>
+      {/* Right: Empty Placeholder to maintain flex-between balance */}
+      <div className="flex items-center min-w-max">
+        {/* Intentionally left blank */}
       </div>
       
     </nav>

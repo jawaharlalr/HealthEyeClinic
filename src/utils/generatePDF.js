@@ -38,7 +38,10 @@ export const generateBillPDF = async (billData) => {
   // --- 3. SLIM PATIENT DETAILS ---
   let currentY = 58;
   const pName = billData.patientName || patient.name || 'Unknown';
-  const reportDate = billData.createdAt?.toDate ? billData.createdAt.toDate().toLocaleDateString() : new Date().toLocaleDateString();
+  
+  // Format Date to DD/MM/YYYY
+  const dateObj = billData.createdAt?.toDate ? billData.createdAt.toDate() : new Date();
+  const reportDate = dateObj.toLocaleDateString('en-GB'); // This gives DD/MM/YYYY
 
   doc.setFontSize(10);
   const col1 = 14, col1Val = 35, col2 = 115, col2Val = 135;
@@ -58,12 +61,21 @@ export const generateBillPDF = async (billData) => {
   doc.setFont(undefined, 'bold'); doc.text("Purpose:", col1, currentY); 
   doc.text(n(billData.purposeOfVisit), col1Val, currentY);
 
-  // --- SPACING FIX: Safely separate details from the first table ---
-  currentY += 4; 
+  // --- NEW: ADDED ADDRESS FIELD ---
+  currentY += 6;
+  doc.setFont(undefined, 'bold'); doc.text("Address:", col1, currentY); 
+  doc.setFont(undefined, 'normal'); 
+  // Use a splitTextToSize to handle long addresses so they don't run off the page
+  const addressLines = doc.splitTextToSize(n(patient.address), 160);
+  doc.text(addressLines, col1Val, currentY);
+  
+  // Adjust currentY based on how many lines the address took
+  currentY += (addressLines.length * 5); 
+
+  // Draw separator line
   doc.setLineWidth(0.4);
   doc.line(14, currentY, 196, currentY); 
-  
-  currentY += 12; 
+  currentY += 12;
 
   // --- 4. IMPROVED TABLE DRAWING ENGINE ---
   const drawTable = (title, head, body) => {
@@ -158,12 +170,18 @@ export const generateBillPDF = async (billData) => {
   drawTable("Final Glass Prescription", ['Eye', 'Sph', 'Cyl', 'Axis', 'Dist Vision', 'Add', 'Near Vision'], 
     (billData.glassPrescription || [{}]).map(r => [r.eye, r.sph, r.cyl, r.axis, r.distVision, r.add, r.nearVision]));
 
-  drawTable("Pupil & Binocular Vision", ['Test', 'Details / OD', 'OS', 'RAPD'], [
-    ['Pupil Reaction', billData.pupil?.[0]?.light, billData.pupil?.[1]?.light, billData.pupil?.[0]?.rapd],
-    ['Cover Test', billData.coverTest?.[0]?.hirschberg, billData.coverTest?.[0]?.ctDistance, ''],
-    ['EOM Movements', billData.ocularMovement?.[0]?.od, billData.ocularMovement?.[0]?.os, '']
-  ]);
+  // --- SEPARATED BINOCULAR TESTS ARRAY DATA MAPPING ---
+  drawTable("Cover Test Assessment", ['Hirschberg', 'Cover Test Distance', 'Cover Test Near'], 
+    (billData.coverTest || [{}]).map(r => [r.hirschberg, r.ctDistance, r.ctNear]));
 
+  drawTable("Extraocular Movements (EOM)", ['OD (Right Eye)', 'OS (Left Eye)'], 
+    (billData.ocularMovement || [{}]).map(r => [r.od, r.os]));
+
+  // --- SEPARATED PUPIL EXAMINATION ARRAY DATA MAPPING ---
+  drawTable("Pupil Examination", ['Eye', 'Size', 'Shape', 'Reaction to Light', 'Reaction to Near', 'RAPD'], 
+    (billData.pupil || [{}]).map(r => [r.eye, r.size, r.shape, r.light, r.near, r.rapd]));
+
+  // --- ANTERIOR SEGMENT ---
   const c = billData.corneaAnteriorChamber || {};
   drawTable("Slit Lamp Findings", ['Structure', 'Right Eye (OD)', 'Left Eye (OS)'], [
     ['Sclera', fmt(c.scleraOd, c.scleraOdText), fmt(c.scleraOs, c.scleraOsText)],
@@ -171,6 +189,14 @@ export const generateBillPDF = async (billData) => {
     ['AC Depth', fmt(c.acDepthOd, c.acDepthOdText), fmt(c.acDepthOs, c.acDepthOsText)],
     ['Iris', fmt(billData.irisLens?.irisOd, billData.irisLens?.irisOdText), fmt(billData.irisLens?.irisOs, billData.irisLens?.irisOsText)],
     ['Lens', fmt(billData.irisLens?.lensOd, billData.irisLens?.lensOdText), fmt(billData.irisLens?.lensOs, billData.irisLens?.lensOsText)]
+  ]);
+
+  // --- POSTERIOR SEGMENT (ADDED FUNDUS) ---
+  const f = billData.fundus || {};
+  drawTable("Fundus Examination", ['Structure', 'Right Eye (OD)', 'Left Eye (OS)'], [
+    ['Retina', f.retinaOd, f.retinaOs],
+    ['Macula', f.maculaOd, f.maculaOs],
+    ['Disc', f.discOd, f.discOs]
   ]);
 
   drawTable("IOP & Special Tests", ['Test Name', 'Right Eye (OD)', 'Left Eye (OS)', 'Time'], [

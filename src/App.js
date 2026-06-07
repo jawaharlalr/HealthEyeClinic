@@ -9,9 +9,11 @@ import Footer from './components/Footer';
 import Dashboard from './pages/Dashboard';
 import AddPatient from './pages/AddPatient';
 import ManagePatient from './pages/ManagePatient';
-import Settings from './pages/Settings';
 import AddBill from './pages/AddBill';
 import ManageBill from './pages/ManageBill';
+import NewInvoice from './pages/NewInvoice';
+import ManageInvoices from './pages/ManageInvoices';
+
 
 function App() {
   return (
@@ -27,11 +29,18 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               
               <Route path="/dashboard" element={<Dashboard />} />
+              
               <Route path="/patients/add" element={<AddPatient />} />
               <Route path="/patients" element={<ManagePatient />} />
-              <Route path="/settings" element={<Settings />} />
+              
               <Route path="/billing/new" element={<AddBill />} />
               <Route path="/billing" element={<ManageBill />} />
+
+              {/* Added New Invoice Route */}
+              <Route path="/invoices/new" element={<NewInvoice />} />
+              <Route path="/invoices" element={<ManageInvoices />} />
+
+          
 
               <Route path="*" element={
                 <div className="flex items-center justify-center h-96 text-slate-500">
