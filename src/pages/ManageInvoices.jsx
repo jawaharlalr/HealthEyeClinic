@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore'; 
-import { FaSearch, FaFileInvoiceDollar, FaDownload, FaEye, FaTrash } from 'react-icons/fa';
+import { FaSearch, FaFileInvoiceDollar, FaDownload, FaTrash, FaEye } from 'react-icons/fa';
 import { generateInvoicePDF } from '../utils/generateInvoicePDF1';
 import { toast } from 'react-toastify';
 import ViewInvoiceModal from '../components/ViewInvoiceModal';
@@ -32,20 +32,29 @@ const ManageInvoices = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this invoice permanently?")) {
-      try {
-        await deleteDoc(doc(db, "invoices", id));
-        setInvoices(prev => prev.filter(inv => inv.id !== id));
-        toast.success("Invoice deleted successfully");
-      } catch (e) {
-        toast.error("Error deleting invoice");
-      }
-    }
-  };
+  console.log("Attempting to delete document with ID:", id); // Check this in your browser console (F12)
+  
+  if (!id) {
+    toast.error("Error: Invoice ID is missing");
+    return;
+  }
 
+  if (window.confirm("Are you sure you want to delete this invoice?")) {
+    try {
+      await deleteDoc(doc(db, "invoices", id));
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      setFilteredInvoices(prev => prev.filter(inv => inv.id !== id));
+      toast.success("Invoice deleted");
+    } catch (e) {
+      console.error("Firestore Delete Error:", e);
+      toast.error(`Delete failed: ${e.message}`);
+    }
+  }
+};
   useEffect(() => {
     const filtered = invoices.filter(inv => 
       inv.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      inv.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       inv.mrNo?.includes(searchTerm)
     );
     setFilteredInvoices(filtered);
@@ -61,7 +70,7 @@ const ManageInvoices = () => {
         <h1 className="text-2xl font-bold md:text-3xl">Manage Invoices</h1>
       </div>
 
-      {/* Search Bar - Uses FaSearch and setSearchTerm */}
+      {/* Search Bar */}
       <div className="flex items-center gap-3 p-4 mb-8 border glass-panel rounded-2xl border-white/5">
         <FaSearch className="ml-2 text-blue-400" />
         <input 
@@ -95,11 +104,16 @@ const ManageInvoices = () => {
                   <td className="p-4 text-sm font-bold">{idx + 1}</td>
                   <td className="p-4 text-sm font-bold">{inv.createdAt?.toDate().toLocaleDateString()}</td>
                   <td className="p-4 text-sm font-bold text-blue-400">{inv.mrNo}</td>
-                  <td className="p-4 text-sm font-bold">{inv.patientName}</td>
+                  <td className="p-4 text-sm font-bold">{inv.patientName || inv.name || 'N/A'}</td>
                   <td className="p-4 text-sm font-black text-emerald-400">₹ {inv.grandTotal?.toFixed(2) || '0.00'}</td>
                   <td className="flex justify-center gap-2 p-4">
+                    {/* View Button */}
                     <button onClick={() => setSelectedInvoice(inv)} className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600"><FaEye size={14}/></button>
+                    
+                    {/* Download Button */}
                     <button onClick={() => generateInvoicePDF(inv)} className="p-2 bg-blue-600 rounded-lg hover:bg-blue-500"><FaDownload size={14}/></button>
+                    
+                    {/* Delete Button */}
                     <button onClick={() => handleDelete(inv.id)} className="p-2 bg-red-600 rounded-lg hover:bg-red-500"><FaTrash size={14}/></button>
                   </td>
                 </tr>
@@ -108,7 +122,14 @@ const ManageInvoices = () => {
           </table>
         </div>
       </div>
-      <ViewInvoiceModal invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+      
+      {/* Modal for Viewing */}
+      {selectedInvoice && (
+        <ViewInvoiceModal 
+          invoice={selectedInvoice} 
+          onClose={() => setSelectedInvoice(null)} 
+        />
+      )}
     </div>
   );
 };

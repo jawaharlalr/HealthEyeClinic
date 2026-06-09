@@ -14,59 +14,68 @@ const ViewInvoiceModal = ({ invoice, onClose }) => {
 
         {/* Patient Details */}
         <div className="grid grid-cols-2 mb-8 gap-x-8 gap-y-4">
-          <div><p className="text-slate-500 font-bold uppercase text-[10px]">Patient Name</p><p className="font-bold">{invoice.patientName || 'N/A'}</p></div>
-          <div><p className="text-slate-500 font-bold uppercase text-[10px]">MR No</p><p className="font-bold">{invoice.mrNo || 'N/A'}</p></div>
-          <div><p className="text-slate-500 font-bold uppercase text-[10px]">Gender</p><p className="font-bold">{invoice.gender || 'N/A'}</p></div>
-          <div><p className="text-slate-500 font-bold uppercase text-[10px]">DOB</p><p className="font-bold">{invoice.dob || 'N/A'}</p></div>
-          <div><p className="text-slate-500 font-bold uppercase text-[10px]">Phone</p><p className="font-bold">{invoice.phone || 'N/A'}</p></div>
-          <div className="col-span-2"><p className="text-slate-500 font-bold uppercase text-[10px]">Address</p><p className="text-sm font-bold">{invoice.address || 'N/A'}</p></div>
+          <div>
+            <p className="text-slate-500 font-bold uppercase text-[10px]">Patient Name</p>
+            <p className="font-bold text-white/80">{invoice.patientName || invoice.name || 'N/A'}</p>
+          </div>
+          {['mrNo', 'gender', 'age', 'phone', 'address'].map(field => (
+            <div key={field} className={field === 'address' ? 'col-span-2' : ''}>
+              <p className="text-slate-500 font-bold uppercase text-[10px]">{field.replace(/([A-Z])/g, ' $1')}</p>
+              <p className="font-bold text-white/80">{invoice[field] || 'N/A'}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Frames Table */}
-        {invoice.frames?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="mb-2 text-xs font-black text-blue-400 uppercase">Frames</h3>
-            <table className="w-full text-xs">
-              <thead><tr className="text-left border-b border-white/10"><th className="pb-1">S.No</th><th className="pb-1">Material</th><th className="pb-1">Type</th><th className="pb-1">Size</th><th className="pb-1 text-right">Price</th></tr></thead>
-              <tbody>{invoice.frames.map((item, i) => (
-                <tr key={i} className="border-b border-white/5"><td className="py-2">{i+1}</td><td className="py-2">{item.material}</td><td className="py-2">{item.type}</td><td className="py-2">{item.size}</td><td className="py-2 text-right">Rs. {item.price}</td></tr>
-              ))}</tbody>
-            </table>
+        {/* Detailed Tables */}
+        {[
+          { key: 'frames', title: 'Frames' },
+          { key: 'lenses', title: 'Lenses' },
+          { key: 'coatings', title: 'Coatings' }
+        ].map(cat => (
+          <div key={cat.key} className="mb-6">
+            <h3 className="pb-1 mb-3 text-xs font-black text-blue-400 uppercase border-b border-white/10">{cat.title}</h3>
+            {invoice[cat.key]?.length > 0 ? (
+              invoice[cat.key].map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-3 mb-2 text-sm rounded-lg bg-white/5">
+                  <div className="flex flex-col">
+                    <span className="font-bold">{item.type || item.material || 'N/A'}</span>
+                    <div className="flex gap-3 text-[10px] text-slate-400">
+                      {item.material && <span>Material: <span className="text-white">{item.material}</span></span>}
+                      {item.size && <span>Size: <span className="text-white">{item.size}</span></span>}
+                    </div>
+                  </div>
+                  <span className="font-black text-emerald-400">Rs. {item.price || '0'}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs italic text-slate-500">No {cat.title.toLowerCase()} added.</p>
+            )}
           </div>
-        )}
-
-        {/* Lenses Table */}
-        {invoice.lenses?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="mb-2 text-xs font-black uppercase text-emerald-400">Lenses</h3>
-            <table className="w-full text-xs">
-              <thead><tr className="text-left border-b border-white/10"><th className="pb-1">S.No</th><th className="pb-1">Material</th><th className="pb-1">Type</th><th className="pb-1 text-right">Price</th></tr></thead>
-              <tbody>{invoice.lenses.map((item, i) => (
-                <tr key={i} className="border-b border-white/5"><td className="py-2">{i+1}</td><td className="py-2">{item.material}</td><td className="py-2">{item.type}</td><td className="py-2 text-right">Rs. {item.price}</td></tr>
-              ))}</tbody>
-            </table>
+        ))}
+        
+        {/* Discount & Totals Summary */}
+        <div className="pt-4 mt-6 space-y-2 border-t border-white/10">
+          <div className="flex justify-between text-sm text-slate-400">
+            <span>Subtotal</span>
+            <span>Rs. {invoice.subTotal?.toFixed(2) || '0.00'}</span>
           </div>
-        )}
-
-        {/* Coatings Table */}
-        {invoice.coatings?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="mb-2 text-xs font-black text-purple-400 uppercase">Lens Coatings</h3>
-            <table className="w-full text-xs">
-              <thead><tr className="text-left border-b border-white/10"><th className="pb-1">S.No</th><th className="pb-1">Type</th><th className="pb-1 text-right">Price</th></tr></thead>
-              <tbody>{invoice.coatings.map((item, i) => (
-                <tr key={i} className="border-b border-white/5"><td className="py-2">{i+1}</td><td className="py-2">{item.type}</td><td className="py-2 text-right">Rs. {item.price}</td></tr>
-              ))}</tbody>
-            </table>
+          <div className="flex justify-between text-sm text-slate-400">
+            <span>Fitting Charges</span>
+            <span>Rs. {invoice.fittingCharges?.toFixed(2) || '200.00'}</span>
           </div>
-        )}
+          
+          {/* Discount details */}
+          {(invoice.discountPercent > 0 || invoice.discountAmount > 0) && (
+            <div className="flex justify-between text-sm text-red-400">
+              <span>Discount {invoice.discountPercent ? `(${invoice.discountPercent}%)` : ''}</span>
+              <span>- Rs. {invoice.discountAmount?.toFixed(2) || '0.00'}</span>
+            </div>
+          )}
 
-        {/* Totals */}
-        <div className="pt-4 mt-6 space-y-2 text-right border-t border-white/10">
-          <p className="text-sm">Subtotal: Rs. {invoice.subTotal?.toFixed(2)}</p>
-          <p className="text-sm">Fitting: Rs. 200.00</p>
-          {invoice.discount > 0 && <p className="text-sm text-red-400">Discount: Rs. {invoice.discount.toFixed(2)}</p>}
-          <p className="text-xl font-black text-emerald-400">Grand Total: Rs. {invoice.grandTotal?.toFixed(2)}</p>
+          <div className="flex justify-between pt-2 mt-2 text-lg font-black border-t border-white/10">
+            <span>Grand Total</span>
+            <span className="text-emerald-400">Rs. {invoice.grandTotal?.toFixed(2) || '0.00'}</span>
+          </div>
         </div>
       </div>
     </div>
