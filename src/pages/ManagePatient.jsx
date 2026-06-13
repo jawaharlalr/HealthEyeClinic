@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, orderBy } from 'firebase/firestore';
 import { 
   MdSearch, MdDelete, MdVisibility, MdEdit, MdClose, 
   MdHistory, MdBadge, MdLocationOn, MdEventAvailable,
@@ -21,7 +21,6 @@ const calculateAge = (dobString) => {
 const ManagePatient = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -43,7 +42,7 @@ const ManagePatient = () => {
         age: doc.data().dob ? calculateAge(doc.data().dob) : (doc.data().age || 0)
       }));
       setPatients(list);
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error) { console.error(error); }
   };
 
   useEffect(() => {
@@ -66,7 +65,6 @@ const ManagePatient = () => {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-700">
-      {/* Toast Notification */}
       <div className={`fixed top-24 right-8 z-[300] transition-all duration-500 transform ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}>
         <div className={`glass-panel px-6 py-4 flex items-center gap-3 border-l-4 ${toast.type === 'success' ? 'border-green-500' : 'border-red-500'}`}>
           <span className="text-sm font-bold tracking-wider text-white uppercase">{toast.message}</span>
