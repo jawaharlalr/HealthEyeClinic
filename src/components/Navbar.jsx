@@ -5,8 +5,7 @@ import {
   MdHome, 
   MdPeople, 
   MdReceipt,
-  MdDescription,
-  MdHealing 
+  MdDescription, 
 } from 'react-icons/md';
 
 const Navbar = () => {

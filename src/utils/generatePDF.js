@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { db } from '../firebase'; 
-import { collection, query, where, getDocs } from 'firebase/firestore';
+
+
 
 export const generateBillPDF = async (billData, shouldPrint = false) => {
   const doc = new jsPDF('p', 'mm', 'a4');
