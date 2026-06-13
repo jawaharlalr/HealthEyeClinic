@@ -15,6 +15,7 @@ import NewInvoice from './pages/NewInvoice';
 import ManageInvoices from './pages/ManageInvoices';
 
 
+
 function App() {
   return (
     <Router>
@@ -39,6 +40,7 @@ function App() {
               {/* Added New Invoice Route */}
               <Route path="/invoices/new" element={<NewInvoice />} />
               <Route path="/invoices" element={<ManageInvoices />} />
+
 
           
 

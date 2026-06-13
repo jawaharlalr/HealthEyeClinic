@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   MdSearch, MdDelete, MdVisibility, MdEdit, MdClose, 
   MdHistory, MdBadge, MdLocationOn, MdEventAvailable,
-  MdPersonAdd, MdCalendarToday
+  MdPersonAdd, MdCalendarToday, MdPrint 
 } from 'react-icons/md';
+import { generatePrescriptionPDF } from '../utils/generatePrescriptionPDF';
 
 const calculateAge = (dobString) => {
   if (!dobString) return '';
@@ -16,6 +17,67 @@ const calculateAge = (dobString) => {
     age--;
   }
   return age >= 0 ? age : 0;
+};
+
+// Component to handle individual row prescription actions
+const PrescriptionActions = ({ patient, showToast }) => {
+  const [hasRx, setHasRx] = useState(false);
+  const [rxData, setRxData] = useState(null);
+
+  useEffect(() => {
+    const checkRx = async () => {
+      const q = query(collection(db, "prescriptions"), where("mrNo", "==", patient.mrNo), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setHasRx(true);
+        setRxData({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      }
+    };
+    checkRx();
+  }, [patient.mrNo]);
+
+  const handleCreateNew = async () => {
+    try {
+      const emptyPrescription = {
+        patientId: patient.id,
+        patientName: patient.name,
+        mrNo: patient.mrNo,
+        glassRx: {
+          od: { distSph: '', distCyl: '', distAxis: '', distVis: '', nearAdd: '', nearVis: '', ipd: '' },
+          os: { distSph: '', distCyl: '', distAxis: '', distVis: '', nearAdd: '', nearVis: '', ipd: '' }
+        },
+        frameDetails: { types: [], materials: [], colour: '', size: '', lensType: [], coating: [], usage: [] },
+        notes: '',
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, "prescriptions"), emptyPrescription);
+      showToast("New prescription record initialized");
+    } catch (error) {
+      showToast("Failed to initialize prescription", "error");
+    }
+  };
+
+  return (
+    <div className="flex justify-end gap-2">
+      {/* Create New Rx Button */}
+      <button 
+        onClick={handleCreateNew}
+        className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-medical-primary hover:border-medical-primary/30 transition-all"
+        title="Quick Initialize Prescription"
+      >
+        <MdPersonAdd size={18} />
+      </button>
+
+      {/* Print Existing Rx Button */}
+      <button 
+        onClick={() => hasRx ? generatePrescriptionPDF(rxData) : showToast("No prescription found", "error")}
+        className={`p-2.5 rounded-xl border transition-all ${hasRx ? 'bg-white/5 border-white/5 text-slate-400 hover:text-medical-primary hover:border-medical-primary/30' : 'bg-transparent border-transparent text-slate-700 cursor-not-allowed opacity-30'}`}
+        title={hasRx ? "Print Prescription" : "No prescription available"}
+      >
+        <MdPrint size={18} />
+      </button>
+    </div>
+  );
 };
 
 const ManagePatient = () => {
@@ -66,7 +128,6 @@ const ManagePatient = () => {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-700">
-      
       <div className={`fixed top-24 right-8 z-[300] transition-all duration-500 transform ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}>
         <div className={`glass-panel px-6 py-4 flex items-center gap-3 border-l-4 ${toast.type === 'success' ? 'border-green-500' : 'border-red-500'}`}>
           <span className="text-sm font-bold tracking-wider text-white uppercase">{toast.message}</span>
@@ -78,7 +139,6 @@ const ManagePatient = () => {
           <h2 className="text-3xl font-bold tracking-tight text-white">Patient Registry</h2>
           <p className="text-slate-400 mt-1 uppercase text-[10px] font-bold tracking-[0.2em] text-medical-primary">Clinical Database Management</p>
         </div>
-
         <div className="flex items-center gap-4">
           <div className="relative w-full group md:w-96">
             <MdSearch className="absolute transition-colors -translate-y-1/2 left-4 top-1/2 text-slate-500 group-focus-within:text-medical-primary" size={20} />
@@ -129,6 +189,7 @@ const ManagePatient = () => {
                         <button onClick={() => setSelectedPatient(p)} className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-medical-primary transition-all">
                           <MdVisibility size={18} />
                         </button>
+                        <PrescriptionActions patient={p} showToast={showToast} />
                         <button onClick={() => setConfirmModal({ isOpen: true, id: p.id })} className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-red-400 hover:bg-red-500/20 transition-all">
                           <MdDelete size={18} />
                         </button>
@@ -197,7 +258,6 @@ const PatientDetailModal = ({ patient, onClose, onUpdate, showToast }) => {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
       <div className="glass-panel w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border-white/5">
-        
         <div className="flex items-center justify-between p-6 border-b border-white/5 bg-slate-900/50">
           <div className="flex items-center gap-4">
             <div className="p-3 border bg-medical-primary/10 rounded-2xl border-medical-primary/20 text-medical-primary">
@@ -219,7 +279,6 @@ const PatientDetailModal = ({ patient, onClose, onUpdate, showToast }) => {
               <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                 <MdPersonAdd className="text-medical-primary" /> Core Patient Demographics
               </h4>
-              
               <div className="grid grid-cols-2 gap-6">
                 <DataField label="Patient Name" name="name" value={formData.name} isEditing={isEditing} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 <DataField label="Primary Contact" name="phone" value={formData.phone} isEditing={isEditing} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
@@ -262,7 +321,6 @@ const PatientDetailModal = ({ patient, onClose, onUpdate, showToast }) => {
             <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-8">
               <MdHistory className="text-medical-primary" /> Clinical Visit Timeline
             </h4>
-
             {loadingVisits ? (
               <p className="text-sm text-slate-500 animate-pulse tracking-wide font-medium uppercase text-[10px]">Retrieving Clinical Logs...</p>
             ) : visits.length === 0 ? (

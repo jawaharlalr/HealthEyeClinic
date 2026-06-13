@@ -39,21 +39,21 @@ const HealthTable = ({ rows, onRowChange, onAdd, onRemove }) => {
                 </td>
                 <td className="p-2 align-top">
                   <TableSelect 
-                    value={row.condition} 
+                    value={row.condition || ''} 
                     options={conditionOptions} 
                     onChange={(e) => onRowChange(row.id, 'condition', e.target.value)} 
                   />
                 </td>
                 <td className="p-2 align-top">
                   <TableInput 
-                    value={row.duration} 
+                    value={row.duration || ''} 
                     placeholder="Duration" 
                     onChange={(e) => onRowChange(row.id, 'duration', e.target.value)} 
                   />
                 </td>
                 <td className="p-2 align-top">
                   <TableInput 
-                    value={row.investigation} 
+                    value={row.investigation || ''} 
                     placeholder="Investigation" 
                     onChange={(e) => onRowChange(row.id, 'investigation', e.target.value)} 
                   />
@@ -85,7 +85,7 @@ const HealthTable = ({ rows, onRowChange, onAdd, onRemove }) => {
              <div>
                <label className="text-[10px] text-blue-300 block mb-1">Condition</label>
                <TableSelect 
-                 value={row.condition} 
+                 value={row.condition || ''} 
                  options={conditionOptions} 
                  onChange={(e) => onRowChange(row.id, 'condition', e.target.value)} 
                />
@@ -93,7 +93,7 @@ const HealthTable = ({ rows, onRowChange, onAdd, onRemove }) => {
              <div>
                <label className="text-[10px] text-blue-300 block mb-1">Duration</label>
                <TableInput 
-                 value={row.duration} 
+                 value={row.duration || ''} 
                  placeholder="Duration" 
                  onChange={(e) => onRowChange(row.id, 'duration', e.target.value)} 
                />
@@ -101,7 +101,7 @@ const HealthTable = ({ rows, onRowChange, onAdd, onRemove }) => {
              <div>
                <label className="text-[10px] text-blue-300 block mb-1">Recent Investigation</label>
                <TableInput 
-                 value={row.investigation} 
+                 value={row.investigation || ''} 
                  placeholder="Investigation details" 
                  onChange={(e) => onRowChange(row.id, 'investigation', e.target.value)} 
                />

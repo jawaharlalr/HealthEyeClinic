@@ -17,10 +17,8 @@ const NewInvoice = () => {
   const [lenses, setLenses] = useState([{ id: Date.now() + 1, material: '', type: '', price: '' }]);
   const [coatings, setCoatings] = useState([{ id: Date.now() + 2, type: '', price: '' }]);
   
-  // Updated discount state
   const [discountPercent, setDiscountPercent] = useState('');
 
-  const FITTING_CHARGES = 200;
   const frameMaterials = ['Plastic', 'Metal', 'Rubber'];
   const frameTypes = ['RimLess', 'Supra', 'Full Frame', 'Shell'];
   const lensMaterials = ['Glass', 'Plastic', 'Fiber'];
@@ -47,7 +45,7 @@ const NewInvoice = () => {
                    coatings.reduce((s, i) => s + (Number(i.price) || 0), 0);
   
   const discountAmount = (subTotal * (Number(discountPercent) || 0)) / 100;
-  const grandTotal = subTotal + FITTING_CHARGES - discountAmount;
+  const grandTotal = subTotal - discountAmount;
 
   const handleRowChange = (setter, id, field, value) => {
     setter(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
@@ -64,7 +62,6 @@ const NewInvoice = () => {
         ...selectedPatient, 
         frames, lenses, coatings, 
         subTotal, 
-        fittingCharges: FITTING_CHARGES, 
         discountPercent: Number(discountPercent) || 0,
         discountAmount: discountAmount,
         grandTotal: Math.max(0, grandTotal), 
@@ -112,13 +109,12 @@ const NewInvoice = () => {
             </div>
           </div>
 
-          <BillingSection title="Frames" icon={<FaGlasses />} data={frames} setter={setFrames} opts={{ material: frameMaterials, type: frameTypes }} textInputs={['size', 'price']} onChange={handleRowChange} onAdd={() => addRow(setFrames, { material: '', type: '', size: '', price: '' })} onRemove={removeRow} />
+          <BillingSection title="Frames & Fitting" icon={<FaGlasses />} data={frames} setter={setFrames} opts={{ material: frameMaterials, type: frameTypes }} textInputs={['size', 'price']} onChange={handleRowChange} onAdd={() => addRow(setFrames, { material: '', type: '', size: '', price: '' })} onRemove={removeRow} />
           <BillingSection title="Lenses" icon={<FaEye />} data={lenses} setter={setLenses} opts={{ material: lensMaterials, type: lensTypes }} textInputs={['price']} onChange={handleRowChange} onAdd={() => addRow(setLenses, { material: '', type: '', price: '' })} onRemove={removeRow} />
           <BillingSection title="Coatings" icon={<FaMagic />} data={coatings} setter={setCoatings} opts={{ type: coatingTypes }} textInputs={['price']} onChange={handleRowChange} onAdd={() => addRow(setCoatings, { type: '', price: '' })} onRemove={removeRow} />
 
           <div className="p-6 space-y-3 bg-black/20 rounded-2xl">
              <div className="flex justify-between text-sm"><span>Subtotal:</span><span>₹{subTotal.toFixed(2)}</span></div>
-             <div className="flex justify-between text-sm"><span>Fitting:</span><span>₹{FITTING_CHARGES.toFixed(2)}</span></div>
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className="text-sm">Discount:</span>

@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { db } from '../firebase'; 
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-export const generateBillPDF = async (billData) => {
+export const generateBillPDF = async (billData, shouldPrint = false) => {
   const doc = new jsPDF('p', 'mm', 'a4');
   
   // --- HELPERS (Defined inside scope to fix ESLint errors) ---
@@ -27,7 +27,7 @@ export const generateBillPDF = async (billData) => {
   doc.setFontSize(28);
   doc.setFont(undefined, 'bold');
   doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
-  doc.text("Healthy Eye Clinic", 110, 20, { align: "center" }); 
+  doc.text("Healthy Eye Clinic & Opticals", 110, 20, { align: "center" }); 
   
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
@@ -38,7 +38,7 @@ export const generateBillPDF = async (billData) => {
 
   // --- 2. DOCTOR & MR ---
   doc.setFontSize(11);
-  doc.text(["Consulting Optometrist,", "Nandhini K"], 14, 40);
+  doc.text(["Optometrist,", "Nandhini K"], 14, 40);
   
   const patient = billData.patient || {};
   const pMR = billData.mrNo || patient.mrNo || 'N/A';
@@ -104,32 +104,6 @@ export const generateBillPDF = async (billData) => {
     currentY = doc.lastAutoTable.finalY + 12; 
   };
 
-  // --- 5. VISIT HISTORY (ONLY SHOWS IF OTHER VISITS EXIST) ---
-  if (pMR !== 'N/A') {
-    try {
-      const q = query(collection(db, "bills"), where("mrNo", "==", pMR));
-      const querySnapshot = await getDocs(q);
-      
-      const pastVisits = [];
-      querySnapshot.forEach((docSnap) => {
-        if (docSnap.id === billData.id) return; 
-        const data = docSnap.data();
-        pastVisits.push({
-          dateObj: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(0),
-          purpose: data.purposeOfVisit || 'N/A'
-        });
-      });
-
-      if (pastVisits.length > 0) {
-        pastVisits.sort((a, b) => b.dateObj - a.dateObj);
-        const visitLogs = pastVisits.map(log => [
-          log.dateObj.toLocaleDateString('en-GB'), log.purpose
-        ]);
-        drawTable("Previous Visits", ['Date', 'Purpose of Visit'], visitLogs);
-      }
-    } catch (error) { console.error("Error fetching logs:", error); }
-  }
-
   // --- 6. CLINICAL SECTIONS ---
   drawTable("Chief Complaints", ['Eye', 'Complaint', 'Duration', 'Progression', 'Association', 'Remarks'], (billData.generalData || [{}]).map(r => [r.eye, r.complaint, r.duration, r.progression, r.association, r.remarks]));
   drawTable("Ocular History", ['Eye', 'Condition', 'Duration', 'Investigation'], (billData.ocularHistory || [{}]).map(r => [r.eye, r.condition, r.duration, r.investigation]));
@@ -140,7 +114,19 @@ export const generateBillPDF = async (billData) => {
   drawTable("Objective Refraction", ['Eye', 'Retinoscopy', 'D.Sph', 'D.Cyl', 'Axis'], (billData.refraction || [{}]).map(r => [r.eye, r.retinoscopy, r.dsph, r.dcyl, r.axis]));
   drawTable("Subjective Acceptance", ['Eye', 'Sph', 'Cyl', 'Axis', 'Dist Vision', 'Add', 'Near Vision'], (billData.acceptance || [{}]).map(r => [r.eye, r.sph, r.cyl, r.axis, r.distVision, r.add, r.nearVision]));
   drawTable("Final Glass Prescription", ['Eye', 'Sph', 'Cyl', 'Axis', 'Dist Vision', 'Add', 'Near Vision'], (billData.glassPrescription || [{}]).map(r => [r.eye, r.sph, r.cyl, r.axis, r.distVision, r.add, r.nearVision]));
-  drawTable("Cover Test Assessment", ['Hirschberg', 'Cover Test Distance', 'Cover Test Near'], (billData.coverTest || [{}]).map(r => [r.hirschberg, r.ctDistance, r.ctNear]));
+  // 1. Hirschberg Test Table
+drawTable(
+  "Hirschberg Test", 
+  ['Hirschberg Details'], 
+  (billData.coverTest || []).map(r => [r.hirschberg || '-'])
+);
+
+// 2. Cover Test Table
+drawTable(
+  "Cover Test", 
+  ['Distance', 'Near'], 
+  (billData.coverTest || []).map(r => [r.ctDistance || '-', r.ctNear || '-'])
+);
   drawTable("Extraocular Movements (EOM)", ['OD (Right Eye)', 'OS (Left Eye)'], (billData.ocularMovement || [{}]).map(r => [r.od, r.os]));
   drawTable("Pupil Examination", ['Eye', 'Size', 'Shape', 'Reaction to Light', 'Reaction to Near', 'RAPD'], (billData.pupil || [{}]).map(r => [r.eye, r.size, r.shape, r.light, r.near, r.rapd]));
 
@@ -153,17 +139,78 @@ export const generateBillPDF = async (billData) => {
     ['Lens', fmt(billData.irisLens?.lensOd, billData.irisLens?.lensOdText), fmt(billData.irisLens?.lensOs, billData.irisLens?.lensOsText)]
   ]);
 
-  const f = billData.fundus || {};
-  drawTable("Fundus Examination", ['Structure', 'Right Eye (OD)', 'Left Eye (OS)'], [['Retina', f.retinaOd, f.retinaOs], ['Macula', f.maculaOd, f.maculaOs], ['Disc', f.discOd, f.discOs]]);
-  drawTable("IOP & Special Tests", ['Test Name', 'Right Eye (OD)', 'Left Eye (OS)', 'Time'], [['IOP (Tonometry)', billData.iop?.iopOd, billData.iop?.iopOs, billData.iop?.iopTime], ['Color Vision', billData.colourDryEye?.ishiharaOd, billData.colourDryEye?.ishiharaOs, ''], ['Lacrimal Test', billData.lacrimalWorkup?.roplasOd, billData.lacrimalWorkup?.roplasOs, '']]);
+  // 1. IOP (Tonometry) Table
+drawTable("Intraocular Pressure", ['Test Name', 'Right Eye (OD)', 'Left Eye (OS)', 'Time'], [
+  ['Applanation Tonometry', billData.iop?.iopOd, billData.iop?.iopOs, billData.iop?.iopTime]
+]);
 
-  // --- 7. FOOTER ---
+// 2. Color Vision Table
+drawTable("Color Vision", ['Test Name', 'Right Eye (OD)', 'Left Eye (OS)'], [
+  ['Ishihara Test', billData.colourDryEye?.ishiharaOd, billData.colourDryEye?.ishiharaOs]
+]);
+
+// 3. Lacrimal Test Table
+drawTable("Lacrimal Test", ['Test Name', 'Right Eye (OD)', 'Left Eye (OS)'], [
+  ['ROPLAS', billData.lacrimalWorkup?.roplasOd, billData.lacrimalWorkup?.roplasOs]
+]);
+
+drawTable("Dry Eye Workup", ['Test', 'Right Eye (OD)', 'Left Eye (OS)'], [
+  ['TBUT', billData.colourDryEye?.tbutOd, billData.colourDryEye?.tbutOs],
+  ['Schirmer\'s Test', billData.colourDryEye?.schirmerOd, billData.colourDryEye?.schirmerOs]
+]);
+
+// Added Impressions Section
+// Added Impressions Section
+doc.setFontSize(12);
+doc.setFont(undefined, 'bold');
+doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
+// Removed `${tableCount}. ` to stop the numbering
+doc.text("Impressions", 14, currentY); 
+
+doc.setFontSize(10);
+doc.setFont(undefined, 'normal');
+doc.setTextColor(0, 0, 0);
+
+// Draws the impression text
+const impressionText = billData.impressions || '';
+const impressionLines = doc.splitTextToSize(impressionText, 180);
+doc.text(impressionLines, 14, currentY + 8);
+
+// Update currentY for any potential sections added after this
+currentY += (impressionLines.length * 6) + 10;
+
+
+
+  // --- 7. FOOTER & PAGE NUMBERS ---
+  // Apply page numbers to all pages generated by autoTable and custom content
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
-    doc.text(`Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+    doc.setFont(undefined, 'normal');
+    doc.text(`Page ${i} of ${pageCount}`, 105, 275, { align: 'center' });
   }
 
-  doc.save(`Report_${pMR}_${pName.replace(/\s+/g, '_')}.pdf`);
-};
+  // --- 8. PRINT OR DOWNLOAD ---
+  if (shouldPrint) {
+    doc.autoPrint();
+    const blobURL = doc.output('bloburl');
+    
+    // Create a hidden iframe to handle the print dialog reliably
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = blobURL;
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow.print();
+        // Optional: Clean up the iframe after a short delay
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 500); 
+    };
+  } else {
+    // Standard download
+    doc.save(`Report_${billData.mrNo || 'Record'}.pdf`);
+  }
+}

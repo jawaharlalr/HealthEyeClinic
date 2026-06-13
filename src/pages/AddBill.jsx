@@ -24,6 +24,7 @@ import {
   FaHistory,
   FaFingerprint,
   FaVenusMars,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 // Table Module Imports
@@ -39,7 +40,6 @@ import CorneaACTable from "../components/tables/CorneaACTable";
 import IrisLensTable from "../components/tables/IrisLensTable";
 import ColourDryEyeTable from "../components/tables/ColourDryEyeTable";
 import IOPTable from "../components/tables/IOPTable";
-import FundusTable from "../components/tables/FundusTable";
 
 import { generateBillPDF } from "../utils/generatePDF";
 import { toast, ToastContainer } from "react-toastify";
@@ -56,6 +56,10 @@ const AddBill = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [visitLogs, setVisitLogs] = useState([]);
+  const addRow = (setter, defaultObj) =>
+    setter((prev) => [...prev, { id: Date.now(), ...defaultObj }]);
+  const removeRow = (setter, id) =>
+    setter((prev) => prev.filter((r) => r.id !== id));
 
   const [purposeOfVisit, setPurposeOfVisit] = useState("");
   const purposeOptions = [
@@ -75,6 +79,7 @@ const AddBill = () => {
       complaint: "",
       duration: "",
       unit: "Days",
+      association: "",
       remarks: "",
     },
   ]);
@@ -207,15 +212,6 @@ const AddBill = () => {
   });
   const [iopData, setIopData] = useState({ iopOd: "", iopOs: "", iopTime: "" });
 
-  // Fundus State Initialization
-  const [fundusData, setFundusData] = useState({
-    retinaOd: "Normal",
-    retinaOs: "Normal",
-    maculaOd: "Normal",
-    maculaOs: "Normal",
-    discOd: "Normal",
-    discOs: "Normal",
-  });
 
   // Search Logic
   useEffect(() => {
@@ -245,6 +241,17 @@ const AddBill = () => {
     }, 400);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, selectedPatient]);
+
+  // Click outside listener for dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSelectPatient = async (patient) => {
     setSelectedPatient(patient);
@@ -281,7 +288,6 @@ const AddBill = () => {
     setSaving(true);
     try {
       const payload = {
-        // --- COMPLETE PATIENT DATA ---
         patient: {
           name: selectedPatient.name,
           mrNo: selectedPatient.mrNo,
@@ -289,11 +295,9 @@ const AddBill = () => {
           gender: selectedPatient.gender,
           phone: selectedPatient.phone,
           address: selectedPatient.address,
-          // If you have other fields in your patient collection, add them here
         },
-        // --- CLINICAL DATA ---
-        patientName: selectedPatient.name, // Kept for easy searching/sorting
-        mrNo: selectedPatient.mrNo, // Kept for easy searching/sorting
+        patientName: selectedPatient.name,
+        mrNo: selectedPatient.mrNo,
         purposeOfVisit,
         generalData: generalRows,
         healthConditions: healthRows,
@@ -313,12 +317,10 @@ const AddBill = () => {
         irisLens,
         colourDryEye,
         iop: iopData,
-        fundus: fundusData,
         age: selectedPatient.age,
         gender: selectedPatient.gender,
         phone: selectedPatient.phone,
         address: selectedPatient.address,
-
         createdAt: serverTimestamp(),
       };
 
@@ -353,46 +355,58 @@ const AddBill = () => {
 
       {!selectedPatient ? (
         <div
-          className="relative z-[60] mb-8 glass-panel rounded-2xl p-10 max-w-3xl mx-auto border-medical-primary/20 bg-medical-primary/5"
+          className="max-w-3xl mx-auto mb-8 relative z-[100]"
           ref={dropdownRef}
         >
-          <h2 className="flex items-center gap-3 mb-6 text-xl font-bold">
-            <FaSearch className="text-blue-400" /> Search Patient
-          </h2>
-          <div className="flex items-center px-6 py-4 transition-all border bg-white/5 border-white/10 rounded-2xl focus-within:border-blue-400">
-            <input
-              className="flex-1 text-lg font-bold bg-transparent outline-none placeholder-blue-300/30"
-              placeholder="Search by Name or MR Number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {loading && (
-              <div className="w-5 h-5 border-blue-400 rounded-full border-3 animate-spin border-t-transparent"></div>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 mb-4 text-blue-400 transition-colors hover:text-white"
+          >
+            <FaArrowLeft /> Back
+          </button>
+
+          <div className="relative p-8 border glass-panel rounded-2xl bg-white/5 border-white/10">
+            <h2 className="flex items-center gap-3 mb-6 text-xl font-bold">
+              <FaSearch className="text-blue-400" /> Search Patient
+            </h2>
+
+            <div className="relative flex items-center px-6 py-4 bg-black/40 border border-white/10 rounded-2xl z-[110]">
+              <input
+                className="flex-1 text-lg font-bold text-white bg-transparent outline-none placeholder-blue-300/30"
+                placeholder="Search by Name or MR Number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoComplete="off"
+              />
+              {loading && (
+                <div className="w-5 h-5 border-2 border-blue-400 rounded-full animate-spin border-t-transparent"></div>
+              )}
+            </div>
+
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute left-0 right-0 mt-3 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-h-72 overflow-y-auto z-[120]">
+                {searchResults.map((p) => (
+                  <div
+                    key={p.id}
+                    onMouseDown={() => handleSelectPatient(p)}
+                    className="flex justify-between p-5 text-white border-b cursor-pointer border-white/5 hover:bg-blue-600/30"
+                  >
+                    <div>
+                      <p className="font-black">{p.name}</p>
+                      <p className="text-xs text-blue-300">
+                        {p.gender} • {p.age} Yrs
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="px-2 py-1 text-xs font-black text-blue-300 rounded bg-blue-500/20">
+                        {p.mrNo}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-          {showDropdown && searchResults.length > 0 && (
-            <div className="absolute z-[70] left-10 right-10 mt-3 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl max-h-72 overflow-y-auto">
-              {searchResults.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => handleSelectPatient(p)}
-                  className="flex justify-between p-5 border-b cursor-pointer border-white/5 hover:bg-blue-600/30"
-                >
-                  <div>
-                    <p className="font-black text-white">{p.name}</p>
-                    <p className="text-xs text-blue-300 uppercase">
-                      {p.gender} • {p.age} Yrs
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="px-2 py-1 text-xs font-black text-blue-300 rounded bg-blue-500/20">
-                      {p.mrNo}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       ) : (
         <div className="space-y-8 animate-fade-in">
@@ -493,11 +507,54 @@ const AddBill = () => {
           </div>
 
           <div className="pt-8 space-y-20 border-t border-white/5">
-            <GeneralTable rows={generalRows} setRows={setGeneralRows} />
-            <HealthTable rows={healthRows} setRows={setHealthRows} />
+            <GeneralTable
+              rows={generalRows}
+              // Ensure the arrow function parameters (id, field, value) are clearly defined
+              onRowChange={(id, field, value) =>
+                handleRowChange(setGeneralRows, id, field, value)
+              }
+              onAdd={() =>
+                addRow(setGeneralRows, {
+                  eye: "OU",
+                  complaint: "",
+                  duration: "",
+                  unit: "Days",
+                  association: "",
+                  remarks: "",
+                })
+              }
+              onRemove={(id) => removeRow(setGeneralRows, id)}
+            />
+
+            <HealthTable
+              rows={healthRows}
+              onRowChange={(id, field, value) =>
+                handleRowChange(setHealthRows, id, field, value)
+              }
+              onAdd={() =>
+                addRow(setHealthRows, {
+                  condition: "",
+                  duration: "",
+                  investigation: "",
+                })
+              }
+              onRemove={(id) => removeRow(setHealthRows, id)}
+            />
+
             <OcularTable
               rows={ocularRows}
-              setRows={setOcularRows}
+              onRowChange={(id, f, v) =>
+                handleRowChange(setOcularRows, id, f, v)
+              }
+              onAdd={() =>
+                addRow(setOcularRows, {
+                  eye: "OU",
+                  condition: "",
+                  duration: "",
+                  investigation: "",
+                })
+              }
+              onRemove={(id) => removeRow(setOcularRows, id)}
               medications={medications}
               setMedications={setMedications}
             />
@@ -505,38 +562,104 @@ const AddBill = () => {
             <VisualTable
               rxRows={rxRows}
               onRxChange={(id, f, v) => handleRowChange(setRxRows, id, f, v)}
-              onRxAdd={() => setRxRows([...rxRows, { id: Date.now() }])}
-              onRxRemove={(id) => setRxRows(rxRows.filter((r) => r.id !== id))}
+              onRxAdd={() =>
+                addRow(setRxRows, {
+                  date: "",
+                  eye: "OU",
+                  sph: "",
+                  cyl: "",
+                  axis: "",
+                  add: "",
+                  prism: "",
+                  base: "",
+                  lens: "",
+                  status: "",
+                })
+              }
+              onRxRemove={(id) => removeRow(setRxRows, id)}
               vaRows={vaRows}
               onVaChange={(id, f, v) => handleRowChange(setVaRows, id, f, v)}
-              onVaAdd={() => setVaRows([...vaRows, { id: Date.now() }])}
-              onVaRemove={(id) => setVaRows(vaRows.filter((r) => r.id !== id))}
+              onVaAdd={() =>
+                addRow(setVaRows, {
+                  eye: "OU",
+                  withoutGlass: "",
+                  withGlass: "",
+                  withPh: "",
+                  contactLens: "",
+                })
+              }
+              onVaRemove={(id) => removeRow(setVaRows, id)}
               refRows={refRows}
               onRefChange={(id, f, v) => handleRowChange(setRefRows, id, f, v)}
-              onRefAdd={() => setRefRows([...refRows, { id: Date.now() }])}
-              onRefRemove={(id) =>
-                setRefRows(refRows.filter((r) => r.id !== id))
+              onRefAdd={() =>
+                addRow(setRefRows, {
+                  eye: "OU",
+                  retinoscopy: "",
+                  dsph: "",
+                  dcyl: "",
+                  axis: "",
+                })
               }
+              onRefRemove={(id) => removeRow(setRefRows, id)}
               accRows={accRows}
               onAccChange={(id, f, v) => handleRowChange(setAccRows, id, f, v)}
-              onAccAdd={() => setAccRows([...accRows, { id: Date.now() }])}
-              onAccRemove={(id) =>
-                setAccRows(accRows.filter((r) => r.id !== id))
+              onAccAdd={() =>
+                addRow(setAccRows, {
+                  eye: "OU",
+                  sph: "",
+                  cyl: "",
+                  axis: "",
+                  distVision: "",
+                  add: "",
+                  nearVision: "",
+                  comments: "",
+                })
               }
+              onAccRemove={(id) => removeRow(setAccRows, id)}
               gpRows={gpRows}
               onGpChange={(id, f, v) => handleRowChange(setGpRows, id, f, v)}
-              onGpAdd={() => setGpRows([...gpRows, { id: Date.now() }])}
-              onGpRemove={(id) => setGpRows(gpRows.filter((r) => r.id !== id))}
+              onGpAdd={() =>
+                addRow(setGpRows, {
+                  eye: "OU",
+                  sph: "",
+                  cyl: "",
+                  axis: "",
+                  add: "",
+                  distVision: "",
+                  nearVision: "",
+                })
+              }
+              onGpRemove={(id) => removeRow(setGpRows, id)}
             />
 
             <CoverTestEOMTable
-              ctRows={ctRows}
-              setCtRows={setCtRows}
-              eomRows={eomRows}
-              setEomRows={setEomRows}
-            />
-            <PupilTable rows={pupilRows} setRows={setPupilRows} />
+  ctRows={ctRows}
+  onCtChange={(id, f, v) => handleRowChange(setCtRows, id, f, v)}
+  onCtAdd={() =>
+    addRow(setCtRows, {
+      hirschberg: "",
+      ctDistance: "",
+      ctNear: "",
+    })
+  }
+  onCtRemove={(id) => removeRow(setCtRows, id)}
+  eomRows={eomRows}
+  onEomChange={(id, f, v) => handleRowChange(setEomRows, id, f, v)}
+  onEomAdd={() => 
+    addRow(setEomRows, { 
+      od: "Full & Free", 
+      os: "Full & Free" 
+    })
+  }
+  onEomRemove={(id) => removeRow(setEomRows, id)}
+/>
 
+            <PupilTable 
+  rows={pupilRows} 
+  setRows={setPupilRows} 
+/>
+
+            {/* Rest of components remain as you had them, ensuring consistent onChange prop naming */}
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <LacrimalTable
                 lacrimal={lacrimal}
@@ -574,12 +697,6 @@ const AddBill = () => {
               />
             </div>
 
-            <FundusTable
-              data={fundusData}
-              onChange={(field, value) =>
-                setFundusData((prev) => ({ ...prev, [field]: value }))
-              }
-            />
 
             <div className="flex justify-end pt-10 pb-32 border-t border-white/5">
               <button
