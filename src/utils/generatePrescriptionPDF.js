@@ -4,12 +4,11 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export const generatePrescriptionPDF = async (rxData) => {
-  // 1. Fetch full patient details from 'patients' collection using MR No
+  // 1. Fetch full patient details
   const q = query(collection(db, "patients"), where("mrNo", "==", rxData.mrNo));
   const snap = await getDocs(q);
   const pData = !snap.empty ? snap.docs[0].data() : {};
 
-  // 2. Prepare combined data (using rxData as the source)
   const data = {
     ...rxData,
     patientName: pData.name || rxData.patientName,
@@ -21,9 +20,6 @@ export const generatePrescriptionPDF = async (rxData) => {
 
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = 210;
-  const themeColor = [0, 150, 136]; // Teal/Cyan
-  
-  // Single declaration of currentY
   let currentY = 15;
 
   // --- 1. HEADER ---
@@ -35,16 +31,15 @@ export const generatePrescriptionPDF = async (rxData) => {
 
   doc.setFontSize(18);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
+  doc.setTextColor(0, 0, 0);
   doc.text("Healthy Eye Clinic & Opticals", pageWidth / 2, currentY, { align: "center" });
   
   doc.setFontSize(9);
-  doc.setTextColor(0, 0, 0);
   doc.setFont(undefined, 'normal');
   currentY += 6;
   doc.text("12A, Surya Nagar, MGR Nagar, Medavakkam, Chennai, Tamil Nadu 600100", pageWidth / 2, currentY, { align: "center" });
   currentY += 4;
-  doc.setDrawColor(themeColor[0], themeColor[1], themeColor[2]);
+  doc.setDrawColor(0, 0, 0);
   doc.line(14, currentY, pageWidth - 14, currentY);
   
   currentY += 10;
@@ -52,31 +47,31 @@ export const generatePrescriptionPDF = async (rxData) => {
   doc.setFont(undefined, 'bold');
   doc.text("GLASS PRESCRIPTION", pageWidth / 2, currentY, { align: "center" });
   currentY += 5;
+  doc.line(14, currentY, pageWidth - 14, currentY);
 
   // --- 2. PATIENT DETAILS ---
+  currentY += 10;
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
   doc.text("Patient Details:", 14, currentY);
-  
   doc.setFont(undefined, 'normal');
-  const formattedDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  
+  const formattedDate = new Date().toLocaleDateString('en-GB');
   doc.text(`Name: ${data.patientName}`, 14, currentY + 6);
   doc.text(`Phone: ${data.patientPhone}`, 110, currentY + 6);
   doc.text(`MR No: ${data.mrNo || 'N/A'}`, 14, currentY + 11);
   doc.text(`Date: ${formattedDate}`, 110, currentY + 11);
   doc.text(`Age/Gender: ${data.patientAge} / ${data.patientGender}`, 14, currentY + 16);
-  
   doc.text("Address:", 110, currentY + 16);
   const addressLines = doc.splitTextToSize(data.patientAddress, 80);
   doc.text(addressLines, 110, currentY + 19);
   
-  currentY += 30;
+  currentY += 35;
+  doc.line(14, currentY, pageWidth - 14, currentY);
+  currentY += 5;
 
   // --- 3. GLASS RX TABLE ---
   doc.setFontSize(12);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
   doc.text("Glass Prescription", 14, currentY);
   currentY += 4;
 
@@ -88,138 +83,77 @@ export const generatePrescriptionPDF = async (rxData) => {
       ['OS', data.glassRx?.os?.distSph, data.glassRx?.os?.distCyl, data.glassRx?.os?.distAxis, data.glassRx?.os?.distVis, data.glassRx?.os?.nearAdd, data.glassRx?.os?.nearVis]
     ],
     theme: 'grid',
-    headStyles: { fillColor: themeColor, fontSize: 9 },
-    styles: { fontSize: 9, cellPadding: 2, halign: 'center' }
+    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0] },
+    styles: { fontSize: 9, cellPadding: 2, halign: 'center', lineColor: [0, 0, 0] },
+    didParseCell: (data) => { if (data.section === 'body') data.cell.styles.fontStyle = 'bold'; }
   });
   
-  // Update Y position after the first table
   currentY = doc.lastAutoTable.finalY + 10;
+  doc.line(14, currentY, pageWidth - 14, currentY);
+  currentY += 5;
 
   // --- 4. IPD TABLE ---
   doc.setFontSize(12);
   doc.setFont(undefined, 'bold');
-  doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
   doc.text("IPD", 14, currentY);
   currentY += 4;
-
   autoTable(doc, {
     startY: currentY,
     head: [['Measurement', 'OD (mm)', 'OS (mm)']],
-    body: [
-      ['IPD', data.glassRx?.od?.ipd || ' ', data.glassRx?.os?.ipd || ' ']
-    ],
+    body: [['IPD', data.glassRx?.od?.ipd || '-', data.glassRx?.os?.ipd || '-']],
     theme: 'grid',
-    headStyles: { fillColor: themeColor, fontSize: 9 },
-    styles: { fontSize: 9, cellPadding: 2, halign: 'center' },
-    columnStyles: { 0: { halign: 'left' } }
+    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0] },
+    styles: { fontSize: 9, cellPadding: 2, halign: 'center', lineColor: [0, 0, 0] },
+    columnStyles: { 0: { halign: 'left' } },
+    didParseCell: (data) => { if (data.section === 'body') data.cell.styles.fontStyle = 'bold'; }
   });
-
   currentY = doc.lastAutoTable.finalY + 10;
+  doc.line(14, currentY, pageWidth - 14, currentY);
+  currentY += 5;
 
-// --- 5. CATEGORIZED SELECTIONS ---
-  const renderBox = (title, options, selected = []) => {
+  // --- 5. CATEGORIZED SELECTIONS ---
+  const renderBox = (title, options, selectedValue, showLine = true) => {
     if (currentY > 250) { doc.addPage(); currentY = 20; }
-
-    // Make the sub-labels (Type, Material) Bold
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
-    doc.text(title, 14, currentY);
+    if (title) doc.text(title, 14, currentY);
     currentY += 6;
-
+    doc.setFont(undefined, "normal");
     doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, 'normal');
-    
     let x = 14;
-    options.forEach(opt => {
-      doc.rect(x, currentY - 3.5, 3, 3);
-      doc.text(opt, x + 5, currentY);
-      x += (opt.length * 2.2) + 12; // Increased spacing slightly
-      if (x > 180) { x = 14; currentY += 6; }
+    options.forEach((opt) => {
+      doc.setDrawColor(0, 0, 0);
+      doc.circle(x + 2, currentY - 2, 2, "S");
+      if (selectedValue === opt) {
+        doc.setLineWidth(0.5);
+        doc.line(x + 1.2, currentY - 2.0, x + 2.0, currentY - 1.0);
+        doc.line(x + 2.0, currentY - 1.0, x + 3.5, currentY - 3.5);
+      }
+      doc.text(opt, x + 6, currentY - 1);
+      x += doc.getTextWidth(opt) + 15;
+      if (x > 170) { x = 14; currentY += 7; }
     });
     currentY += 10;
+    if (showLine) { doc.line(14, currentY, pageWidth - 14, currentY); currentY += 5; }
   };
 
-  // 1. FRAME SECTION
-  doc.setFontSize(12); 
-  doc.setFont(undefined, 'bold'); // BOLD HEADER
-  doc.setTextColor(0, 0, 0);
-  doc.text("Frame:", 14, currentY); currentY += 6;
-  renderBox("Type:", ['RimLess', 'Supra', 'Full Frame', 'Shell'], data.frameDetails?.types);
-  renderBox("Material:", ['Plastic', 'Metal', 'Fiber', 'Rubber'], data.frameDetails?.materials);
-  
-  doc.setFontSize(10);
-  doc.text(`Colour: _______________      Size: _______________`, 14, currentY);
-  currentY += 12;
+  renderBox("Lens Type:", ['Single Vision', 'Progressive', 'KT Bifocal', 'Protective', 'Coolens'], data.frameDetails?.lensType, true);
+  renderBox("Coating:", ['AR', 'Hard Multicoat', 'Blue light Filters', 'Photochromic', 'Hydrophobic', 'UV Block', 'Anti Scratch'], data.frameDetails?.coating, true);
+  renderBox("Glass Usage:", ['Regular Use', 'Near Work only', 'Outdoor activity', 'Occasional Wear', 'Aesthetic Wear'], data.frameDetails?.usage, false);
 
-  // 2. LENS SECTION
-  doc.setFontSize(12); 
-  doc.setFont(undefined, 'bold'); // BOLD HEADER
-  doc.text("Lens:", 14, currentY); currentY += 6;
-  renderBox("Type:", ['Single Vision', 'Progressive', 'KT Bifocal', 'Protective', 'Coolens'], data.frameDetails?.lensType);
-
-  // 3. COATING SECTION
-  doc.setFontSize(12); 
-  doc.setFont(undefined, 'bold'); // BOLD HEADER
-  doc.text("Coating:", 14, currentY); currentY += 6;
-  renderBox("", ['AR', 'Hard Multicoat', 'Hard Coat', 'Blue light Filters', 'Photochromic', 'Hydrophobic', 'UV Block', 'Anti Scratch'], data.frameDetails?.coating);
-
-  // 4. USAGE SECTION
-  doc.setFontSize(12); 
-  doc.setFont(undefined, 'bold'); // BOLD HEADER
-  doc.text("Glass Usage:", 14, currentY); currentY += 6;
-  renderBox("", ['Regular Use', 'Near Work only', 'Outdoor activity', 'Occasional Wear', 'Aesthetic Wear'], data.frameDetails?.usage);
-
-  // --- 7. FOOTER: SIGNATURE & DISCLAIMER ---
-  
-  // Signature Line - Reduced currentY increment to move it up
-  
+  // --- 8. FOOTER ---
   doc.setFontSize(10);
   doc.setFont(undefined, 'bold');
-  // Adjusted Y position to keep the text inside the signature line
-  doc.text("Optometrist Signature", 168, currentY + 10, { align: "center" });
-
-  // Validity Disclaimer (Calculated Date)
-  currentY += 10; 
-  
-  // Logic to calculate 6 months from today
-  const expiryDate = new Date();
-  expiryDate.setMonth(expiryDate.getMonth() + 12);
-  const formattedExpiry = expiryDate.toLocaleDateString('en-GB', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  });
-
+  doc.text("Optometrist Signature", 168, currentY + 20, { align: "center" });
+  currentY += 20; 
   doc.setFontSize(8);
   doc.setFont(undefined, 'italic');
-  doc.setTextColor(100, 100, 100);
-  doc.text(
-    `*This Prescription is valid till ${formattedExpiry}.`, 
-    14, 
-    currentY
-  );
-  
-  // Note: If you want the text itself to be visually slanted:
-  // You can use the 'angle' property in the doc.text function
-  // doc.text("*This Prescription is valid only for 6 months.", 14, currentY, { angle: 5 });
-  
-  /// --- 8. AUTO-PRINT TRIGGER ---
+  doc.text(`*This Prescription is valid till ${new Date(new Date().setMonth(new Date().getMonth() + 12)).toLocaleDateString('en-GB')}.`, 14, currentY);
+
   doc.autoPrint();
-  const blobURL = doc.output('bloburl');
-  
-  // Create a hidden iframe to trigger the browser's print dialog automatically
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
-  iframe.src = blobURL;
+  iframe.src = doc.output('bloburl');
   document.body.appendChild(iframe);
-  
-  iframe.onload = () => {
-    setTimeout(() => {
-      iframe.contentWindow.print();
-      // Optional: Cleanup
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    }, 500);
-  };
+  iframe.onload = () => { setTimeout(() => { iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 500); };
 };

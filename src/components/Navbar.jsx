@@ -5,7 +5,8 @@ import {
   MdHome, 
   MdPeople, 
   MdReceipt,
-  MdDescription, 
+  MdDescription,
+  MdMedicalServices // Added for Prescriptions
 } from 'react-icons/md';
 
 const Navbar = () => {
@@ -44,6 +45,22 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* Prescriptions Dropdown (New Logic) */}
+        <div className="relative group">
+          <button className="flex items-center gap-2 px-4 py-2 transition rounded-xl text-slate-300 group-hover:bg-white/10 group-hover:text-white">
+            <MdMedicalServices size={20} />
+            <span className="text-sm font-semibold tracking-wide">Rx</span>
+            <MdKeyboardArrowDown className="transition-transform group-hover:rotate-180" />
+          </button>
+          <div className="absolute left-0 z-50 invisible w-48 pt-5 transition-all duration-300 opacity-0 top-full group-hover:visible group-hover:opacity-100">
+            <div className="p-1.5 border shadow-2xl glass-panel bg-slate-900/95 border-medical-glassBorder backdrop-blur-xl rounded-2xl">
+              <Link to="/prescriptions/new" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Issue Rx</Link>
+              <div className="h-[1px] bg-white/5 my-1 mx-2"></div>
+              <Link to="/prescriptions" className="block px-4 py-2.5 text-xs font-medium transition-colors rounded-lg text-slate-300 hover:bg-medical-primary/20 hover:text-white">Manage Rx</Link>
+            </div>
+          </div>
+        </div>
+
         {/* Billing Dropdown */}
         <div className="relative group">
           <button className="flex items-center gap-2 px-4 py-2 transition rounded-xl text-slate-300 group-hover:bg-white/10 group-hover:text-white">
@@ -77,8 +94,6 @@ const Navbar = () => {
         </div>
 
       </div>
-
-      <div className="flex items-center min-w-max"></div>
       
     </nav>
   );

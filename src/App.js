@@ -13,6 +13,8 @@ import AddBill from './pages/AddBill';
 import ManageBill from './pages/ManageBill';
 import NewInvoice from './pages/NewInvoice';
 import ManageInvoices from './pages/ManageInvoices';
+import ManagePrescriptions from './pages/ManagePrescription';
+import AddPrescription from './pages/AddPrescription';
 
 
 
@@ -40,6 +42,10 @@ function App() {
               {/* Added New Invoice Route */}
               <Route path="/invoices/new" element={<NewInvoice />} />
               <Route path="/invoices" element={<ManageInvoices />} />
+
+              {/* Added Prescription Routes */}
+              <Route path="/prescriptions/new" element={<AddPrescription />} />
+              <Route path="/prescriptions" element={<ManagePrescriptions />} />
 
 
           
