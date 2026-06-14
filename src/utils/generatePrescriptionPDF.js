@@ -77,7 +77,7 @@ export const generatePrescriptionPDF = async (rxData) => {
 
   autoTable(doc, {
     startY: currentY,
-    head: [['Eye', 'Dist Sph', 'Dist Cyl', 'Dist Axis', 'Dist Vision', 'Near Add', 'Near Vision']],
+    head: [['Eye', 'Sph', 'Cyl', 'Axis', 'Dist Vision', 'Add', 'Near Vision']],
     body: [
       ['OD', data.glassRx?.od?.distSph, data.glassRx?.od?.distCyl, data.glassRx?.od?.distAxis, data.glassRx?.od?.distVis, data.glassRx?.od?.nearAdd, data.glassRx?.od?.nearVis],
       ['OS', data.glassRx?.os?.distSph, data.glassRx?.os?.distCyl, data.glassRx?.os?.distAxis, data.glassRx?.os?.distVis, data.glassRx?.os?.nearAdd, data.glassRx?.os?.nearVis]
